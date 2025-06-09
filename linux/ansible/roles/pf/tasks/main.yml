@@ -1,0 +1,17 @@
+---
+- name: Lockdown PF
+  become: true
+  when: pf_lockdown = true
+  block:
+    - name: Stop pf firewall
+      ansible.builtin.command: "pfctl -d"
+      changed_when: true
+    
+    - name: Template firewall config file
+      ansible.builtin.template:
+        src: templates/pf.conf.j2
+        dest: s
+
+    - name: Re-enable pf firewall
+      ansible.builtin.shell: "pfctl -e"
+      changed_when: true

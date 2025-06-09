@@ -1,0 +1,73 @@
+---
+
+- name: Download gitignore
+  when: ntlm_passwords_shuffle
+  block:
+    - name: Create passwords file
+      ansible.windows.win_tempfile:
+        suffix: "gitignore"
+        state: file
+      register: gitignore_file
+    - name: Add * to gitignore
+      community.windows.win_lineinfile:
+        path: "{{ gitignore_file.path }}"
+        line: "*"
+    - name: Fetch gitignore
+      ansible.builtin.fetch:
+        src: "{{ gitignore_file.path }}"
+        dest: "{{ playbook_dir }}/domain/.gitignore"
+        flat: true
+    - name: Delete gitignore
+      ansible.windows.win_file:
+        path: "{{ gitignore_file.path }}"
+        state: absent
+
+- name: Shuffle windows users passwords
+  when: ntlm_passwords_shuffle is true
+  block:
+    - name: Get windows list of users
+      # This also gets domain users, and password changes for this propogate back to the domain. How to get only local users?
+      # https://www.lepide.com/how-to/list-all-user-accounts-on-a-windows-system-using-powershell.html
+      # Get-LocalUser | Select-Object -ExpandProperty Name
+      # Get-WmiObject -ComputerName workstation1 -Class Win32_UserAccount -Filter "LocalAccount=True"
+      ansible.windows.win_shell: Get-WmiObject Win32_UserAccount | Select-Object -ExpandProperty Name
+      register: local_users
+    - name: Display user list
+      ansible.builtin.debug:
+        # Each line of stdout_lines is a user to shuffle
+        var: local_users
+    - name: Create random location for passwords csv
+      ansible.builtin.set_fact:
+        ntlmpasswordfile_suffix: "{{ lookup('community.general.random_string', length=12, special=false) }}"
+    - name: Create passwords file
+      ansible.windows.win_tempfile:
+        suffix: "{{ ntlmpasswordfile_suffix }}"
+        state: file
+      register: ntlmpasswordfile
+    - name: Loop through users, change passwords
+      ansible.builtin.include_tasks:
+        file: tasks/change_password.yml
+      when: "{{ item != ansible_user }}"
+      loop: "{{ local_users.stdout_lines }}"
+    - name: Generate password of {{ ansible_user }}
+      ansible.builtin.set_fact:
+        ntlm_admin_password: "{{ lookup('community.general.random_string', length=12, special=false) }}"
+      when: not ntlm_admin_password 
+    - name: Export password changes to CSV
+      community.windows.win_lineinfile:
+        path: "{{ ntlmpasswordfile.path }}"
+        line: "{{ ansible_user }},{{ ntlm_admin_password }}"
+
+    - name: Fetch local users passwords csv
+      ansible.builtin.fetch:
+        src: "{{ ntlmpasswordfile.path }}"
+        dest: "{{ playbook_dir }}/ntlm/{{ inventory_hostname if inventory_hostname != ntlm_localhost else ansible_facts['nodename'] }}.csv"
+        flat: true
+    - name: Delete passwords file
+      ansible.windows.win_file:
+        path: "{{ ntlmpasswordfile.path }}"
+        state: absent
+    - name: Change password for user {{ ansible_user }}
+      ansible.windows.win_user:
+        name: "{{ ansible_user }}"
+        password: "{{ ntlm_admin_password }}"

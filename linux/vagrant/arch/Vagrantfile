@@ -1,0 +1,67 @@
+# -*- mode: ruby -*-
+# vi: set ft=ruby :
+
+Vagrant.configure("2") do |config|
+
+    config.vm.synced_folder ".", "/vagrant", disabled: true
+    config.vm.provision "shell", path: "scripts/packages.sh"
+
+    config.vm.define "arch" do |vmconfig|
+        vmconfig.vm.provision "ansible" do |ansible|
+            ansible.playbook = "playbooks/inventory.yml"
+        end
+        vmconfig.vm.box = "archlinux/archlinux"
+        vmconfig.vm.provider "libvirt" do |libvirt|
+            libvirt.driver = "kvm"
+            libvirt.memory = 1024
+            libvirt.cpus = 2
+            libvirt.video_type = "virtio"
+            #libvirt.graphics_type = "vnc"
+        end
+        vmconfig.vm.provider "virtualbox" do |virtualbox,override|
+            virtualbox.memory = 1024
+            virtualbox.cpus = 1
+            #override.vm.network "private_network", ip: "192.168.56.4"
+        end
+    end
+    config.vm.define "podman" do |vmconfig|
+        #vmconfig.vm.provision "shell", path: "provision.sh"
+        vmconfig.vm.provision "ansible" do |ansible|
+            ansible.playbook = "playbooks/podman.yml"
+            ansible.compatibility_mode = "2.0"
+        end
+        vmconfig.vm.box = "archlinux/archlinux"
+        vmconfig.vm.provider "libvirt" do |libvirt|
+            libvirt.driver = "kvm"
+            libvirt.memory = 2500
+            libvirt.cpus = 2
+            libvirt.video_type = "virtio"
+            #libvirt.graphics_type = "vnc"
+        end
+        vmconfig.vm.provider "virtualbox" do |virtualbox|
+            virtualbox.memory = 1024
+            virtualbox.cpus = 1
+            #override.vm.network "private_network", ip: "192.168.56.4"
+        end
+    end
+    config.vm.define "k0s" do |vmconfig|
+        # k0s is a kubernetes distribution which is simple to set up for a single node deployment
+        vmconfig.vm.provision "ansible" do |ansible|
+            ansible.playbook = "playbooks/kubernetes.yml"
+            ansible.compatibility_mode = "2.0"
+        end   
+        vmconfig.vm.box = "archlinux/archlinux"
+        vmconfig.vm.provider "libvirt" do |libvirt|
+            libvirt.driver = "kvm"
+            libvirt.memory = 3000
+            libvirt.cpus = 2
+            libvirt.video_type = "virtio"
+            #libvirt.graphics_type = "vnc"
+        end
+        vmconfig.vm.provider "virtualbox" do |virtualbox|
+            virtualbox.memory = 1024
+            virtualbox.cpus = 1
+            #override.vm.network "private_network", ip: "192.168.56.4"
+        end
+    end
+end

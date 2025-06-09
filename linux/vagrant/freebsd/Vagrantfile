@@ -1,0 +1,50 @@
+# -*- mode: ruby -*-
+# vi: set ft=ruby :
+
+Vagrant.configure("2") do |config|
+
+    config.vm.synced_folder ".", "/vagrant", disabled: true
+    #config.vm.provision "shell", path: "provision.sh"
+
+    config.vm.define "14" do |vmconfig|
+        #vmconfig.vm.provision "shell", path: "provision.sh"
+        # vmconfig.vm.provision "ansible" do |ansible|
+        #     ansible.playbook = "playbooks/provision.yml"
+        # end
+        vmconfig.vm.box = "generic/freebsd14"
+        vmconfig.vm.provider "libvirt" do |libvirt|
+            libvirt.driver = "kvm"
+            libvirt.memory = 1024
+            libvirt.cpus = 2
+            libvirt.video_type = "virtio"
+            #libvirt.graphics_type = "vnc"
+        end
+        vmconfig.vm.provider "virtualbox" do |virtualbox,override|
+            virtualbox.memory = 1024
+            virtualbox.cpus = 1
+            #override.vm.network "private_network", ip: "192.168.56.4"
+        end
+
+    end
+
+    config.vm.define "12" do |vmconfig|
+        #vmconfig.vm.provision "shell", path: "provision.sh"
+        # vmconfig.vm.provision "ansible" do |ansible|
+        #     ansible.playbook = "playbooks/provision.yml"
+        # end
+        vmconfig.vm.box = "generic/freebsd12"
+        vmconfig.vm.provider "libvirt" do |libvirt|
+            libvirt.driver = "kvm"
+            libvirt.memory = 1024
+            libvirt.cpus = 2
+            libvirt.video_type = "virtio"
+            #libvirt.graphics_type = "vnc"
+        end
+        vmconfig.vm.provider "virtualbox" do |virtualbox,override|
+            virtualbox.memory = 1024
+            virtualbox.cpus = 1
+            #override.vm.network "private_network", ip: "192.168.56.4"
+        end
+
+    end
+end

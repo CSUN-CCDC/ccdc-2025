@@ -1,0 +1,16 @@
+---
+- name: Playbook for testing podman related roles
+  hosts: all
+
+  roles:
+    - role: "../roles/facts"
+    - role: "../roles/podman"
+      vars:
+        podman_backup_version: fresh
+        podman_user: podmaner
+        # podman_backup_volumes:
+        #   - test_volume
+        # podman_backup_containers: 
+        #  - alpine_container
+        podman_restore_volumes:
+          - test_volume

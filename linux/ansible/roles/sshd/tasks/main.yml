@@ -1,0 +1,64 @@
+---
+# - name: Add SSH Privilege Separation User
+#   ansible.builtin.user:
+#     name: sshd
+#     comment: "sshd privilege separation"
+#     system: true
+#     shell: /bin/false
+#   when: not ('sshd' in ansible_facts.ansible_users)
+
+- name: Configure sshd
+  ansible.builtin.lineinfile:
+    dest: /etc/ssh/sshd_config
+    regexp: "^{{ item.parameter }}"
+    line: "{{ item.parameter }} {{ item.value }}"
+    state: present
+    backup: true
+  with_items:
+    - parameter: UsePrivilegeSeparation
+      value: "no"
+    - parameter: PermitRootLogin
+      value: "yes"
+    - parameter: PubkeyAuthentication
+      value: "yes"
+    - parameter: PermitEmptyPasswords
+      value: "no"
+    - parameter: AllowAgentForwarding
+      value: "no"
+    - parameter: X11Forwarding
+      value: "no"
+    - parameter: PasswordAuthentication
+      value: "yes"
+      # Logan's edits
+    - parameter: MaxAuthTries
+      value: "3"
+    - paramter: ClientAliveInterval
+      value: "120"
+    - parameter: Protocol
+      value: "2"
+    - parameter: HostBasedAuthentication
+      value: "no"
+    - parameter: maxsessions
+      value: "5"
+    - parameter: LogLevel
+      value: "VERBOSE"
+
+- name: Allow SSH access for the specific user
+  ansible.builtin.lineinfile:
+    dest: /etc/ssh/sshd_config
+    regexp: '^AllowUsers'
+    line: 'AllowUsers {{ only_ssh_user }}'
+  when: only_ssh_user is defined
+
+- name: Nixify sshd
+  ansible.builtin.include_tasks: tasks/nixify.yml
+  when: sshd_nixify is true
+
+- name: Find files and directories in ssh directory
+  ansible.builtin.find:
+    paths: /etc/ssh
+    recurse: true
+  register: directory_contents
+- name: Display all ssh config files
+  ansible.builtin.debug:
+    var: directory_contents

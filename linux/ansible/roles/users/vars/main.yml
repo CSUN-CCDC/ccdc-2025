@@ -1,0 +1,12 @@
+# boolean, if defined, will shuffle all passwords (including ansible_user) and download a CSV of the changes
+# Seems to not set passwords for accounts with /sbin/nologin or /bin/false as the shell.
+
+users_passwords_shuffle: false
+
+users_passwords_hash: 'sha512' # String, sets the password hashing algorithm to be used. Some older OS may not be compatible with a newer hasing algorithm.
+
+users_admins: [] # List of strings, of which users should be part of the docker/sudo/wheel groups. Requires the "groups" command.
+
+# String, sets the password ansible_user, the user you are connecting to the machine as
+# This is only ran when users_passwords_shuffle is true
+users_admin_password: ""

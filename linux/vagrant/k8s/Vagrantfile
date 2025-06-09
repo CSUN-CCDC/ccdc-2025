@@ -1,0 +1,50 @@
+# -*- mode: ruby -*-
+# vi: set ft=ruby :
+
+## NEITHER OF THESE WORK!
+
+Vagrant.configure("2") do |config|
+
+
+    config.vm.synced_folder ".", "/vagrant", disabled: true
+    # Can't find python right now
+    # config.vm.provision "shell", path: "scripts/provision.sh"
+    config.vm.define "1.28" do |vmconfig|
+        # vmconfig.vm.provision "ansible" do |ansible|
+        #     ansible.playbook = "playbooks/inventory.yml"
+        # end
+        # https://github.com/alvistack/ansible-collection-kubernetes
+        vmconfig.vm.box = "alvistack/kubernetes-1.28"
+        vmconfig.vm.provider "libvirt" do |libvirt|
+            libvirt.driver = "kvm"
+            libvirt.memory = 1024
+            libvirt.cpus = 1
+            libvirt.video_type = "virtio"
+            #libvirt.graphics_type = "vnc"
+        end
+        vmconfig.vm.provider "virtualbox" do |virtualbox,override|
+            virtualbox.memory = 1024
+            virtualbox.cpus = 1
+            #override.vm.network "private_network", ip: "192.168.56.4"
+        end
+    end
+    config.vm.define "kubic" do |vmconfig|
+        # vmconfig.vm.provision "ansible" do |ansible|
+        #     ansible.playbook = "playbooks/inventory.yml"
+        # end
+        # https://github.com/alvistack/ansible-collection-kubernetes
+        vmconfig.vm.box = "opensuse/Kubic.x86_64"
+        vmconfig.vm.provider "libvirt" do |libvirt|
+            libvirt.driver = "kvm"
+            libvirt.memory = 1024
+            libvirt.cpus = 1
+            libvirt.video_type = "virtio"
+            #libvirt.graphics_type = "vnc"
+        end
+        vmconfig.vm.provider "virtualbox" do |virtualbox,override|
+            virtualbox.memory = 1024
+            virtualbox.cpus = 1
+            #override.vm.network "private_network", ip: "192.168.56.4"
+        end
+    end
+end

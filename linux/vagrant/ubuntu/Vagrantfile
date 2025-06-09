@@ -1,0 +1,192 @@
+# -*- mode: ruby -*-
+# vi: set ft=ruby :
+
+Vagrant.configure("2") do |config|
+
+    config.vm.synced_folder ".", "/vagrant", disabled: true
+    #config.vm.provision "shell", path: "provision.sh"
+
+    config.vm.define "focal" do |vmconfig|
+        vmconfig.vm.provision "ansible" do |ansible|
+            ansible.playbook = "playbooks/provision.yml"
+        end
+        vmconfig.vm.box = "generic/ubuntu2004"
+        vmconfig.vm.provider "libvirt" do |libvirt|
+            libvirt.driver = "kvm"
+            libvirt.memory = 1024
+            libvirt.cpus = 2
+            libvirt.video_type = "virtio"
+            #libvirt.graphics_type = "vnc"
+        end
+        vmconfig.vm.provider "virtualbox" do |virtualbox,override|
+            virtualbox.memory = 1024
+            virtualbox.cpus = 1
+            #override.vm.network "private_network", ip: "192.168.56.4"
+        end
+        vmconfig.vm.provider "vmware_desktop" do |vmware, override|
+            vmware.vmx["memsize"] = "1024"
+            vmware.vmx["numvcpus"] = "1"
+        end
+        
+    end
+
+    config.vm.define "lamp" do |vmconfig|
+        # Basically focal, but with a webshell installed as well.
+
+        vmconfig.vm.provision "ansible" do |ansible|
+            ansible.playbook = "playbooks/lamp.yml"
+        end
+        vmconfig.vm.box = "techchad2022/lamp" # Ubuntu 22.04 LTS, Jammy Jellyfish 
+        # sql user: root. Sql password: "Password123!"
+        vmconfig.vm.provider "libvirt" do |libvirt|
+            libvirt.driver = "kvm"
+            libvirt.memory = 2048
+            libvirt.cpus = 2
+            libvirt.video_type = "virtio"
+            #libvirt.graphics_type = "vnc"
+        end
+        vmconfig.vm.provider "virtualbox" do |virtualbox,override|
+            virtualbox.memory = 2048
+            virtualbox.cpus = 1
+            #override.vm.network "private_network", ip: "192.168.56.4"
+        end
+        
+    end
+    config.vm.define "keycloak" do |vmconfig|
+        # A variation of "lamp" above
+        # Keycloak is deployed to vm ip, port 8080. 
+        # User: admin. Password: admin
+        # Some example realms have been imported as well
+        vmconfig.vm.provision "ansible" do |ansible|
+            ansible.playbook = "playbooks/keycloak.yml"
+            ansible.extra_vars = {
+                keycloak_version: "23.0"
+            }
+        end
+        vmconfig.vm.box = "techchad2022/lamp" # Ubuntu 22.04 LTS, Jammy Jellyfish 
+        # sql user: root. Sql password: "Password123!"
+        vmconfig.vm.provider "libvirt" do |libvirt|
+            libvirt.driver = "kvm"
+            libvirt.memory = 2048
+            libvirt.cpus = 2
+            libvirt.video_type = "virtio"
+        end
+        vmconfig.vm.provider "virtualbox" do |virtualbox,override|
+            virtualbox.memory = 2048
+            virtualbox.cpus = 1
+        end
+    end
+    config.vm.define "keycloak21" do |vmconfig|
+        # A variation of "keycloak" above
+        # Older version of keycloak, for testing api compatibility.
+        # Keycloak is deployed to vm ip, port 8080. 
+        # User: admin. Password: admin
+        # Some example realms have been imported as well
+        vmconfig.vm.provision "ansible" do |ansible|
+            ansible.playbook = "playbooks/keycloak.yml"
+            ansible.extra_vars = {
+                keycloak_version: "21.0"
+            }
+        end
+        vmconfig.vm.box = "techchad2022/lamp" # Ubuntu 22.04 LTS, Jammy Jellyfish 
+        # sql user: root. Sql password: "Password123!"
+        vmconfig.vm.provider "libvirt" do |libvirt|
+            libvirt.driver = "kvm"
+            libvirt.memory = 2048
+            libvirt.cpus = 2
+            libvirt.video_type = "virtio"
+        end
+        vmconfig.vm.provider "virtualbox" do |virtualbox,override|
+            virtualbox.memory = 2048
+            virtualbox.cpus = 1
+        end
+    end
+
+    config.vm.define "keycloak18" do |vmconfig|
+        # A variation of "keycloak" above
+        # Older version of keycloak, for testing api compatibility.
+        # Doesn't work, this version doesn't support importing realms in the same manner
+        # https://keycloak-archive.github.io/archive/documentation-18.0.html
+        # https://keycloak-archive.github.io/docs-api/18.0/rest-api/index.html
+        # Keycloak is deployed to vm ip, port 8080. 
+        # User: admin. Password: admin
+        # Some example realms have been imported as well
+        vmconfig.vm.provision "ansible" do |ansible|
+            ansible.playbook = "playbooks/keycloak.yml"
+            ansible.extra_vars = {
+                keycloak_version: "17.0"
+            }
+        end
+        vmconfig.vm.box = "techchad2022/lamp" # Ubuntu 22.04 LTS, Jammy Jellyfish 
+        # sql user: root. Sql password: "Password123!"
+        vmconfig.vm.provider "libvirt" do |libvirt|
+            libvirt.driver = "kvm"
+            libvirt.memory = 2048
+            libvirt.cpus = 2
+            libvirt.video_type = "virtio"
+        end
+        vmconfig.vm.provider "virtualbox" do |virtualbox,override|
+            virtualbox.memory = 2048
+            virtualbox.cpus = 1
+        end
+    end
+
+
+    config.vm.define "homestead" do |vmconfig|
+        # Basically focal, but with a webshell installed as well.
+
+        vmconfig.vm.provision "ansible" do |ansible|
+            ansible.playbook = "playbooks/lapp.yml"
+        end
+        vmconfig.vm.box = "laravel/homestead"
+        # Essentially, this box is a lamp, and a lapp, and more in one. mysql, postgres. Php, and nginx. Should have mongo, but it can't be found. 
+        # https://github.com/laravel/settler/tree/v13.0.0
+        # Docs: https://laravel.com/docs/10.x/homestead
+        # my/postgres sql and mongodb: user: homestead. Pass: secret
+        vmconfig.vm.provider "libvirt" do |libvirt|
+            libvirt.driver = "kvm"
+            libvirt.memory = 2048
+            libvirt.cpus = 2
+            libvirt.video_type = "virtio"
+            #libvirt.graphics_type = "vnc"
+        end
+        vmconfig.vm.provider "virtualbox" do |virtualbox,override|
+            virtualbox.memory = 2048
+            virtualbox.cpus = 1
+        end
+    end
+
+    config.vm.define "mern" do |vmconfig|
+
+        vmconfig.vm.provision "ansible" do |ansible|
+            ansible.playbook = "playbooks/mern.yml"
+            ansible.compatibility_mode = "2.0"
+        end
+        vmconfig.vm.box = "techchad2022/mern"
+        # MERN stack - Mongodb, engine-x (nginx), react, nodejs
+        # Ubuntu 22.04
+        # mongo username: admin password: Password123!
+        # Unable to authenticate for some reason
+        vmconfig.vm.provider "virtualbox" do |virtualbox|
+            virtualbox.memory = 2048
+            virtualbox.cpus = 1
+        end
+    end
+
+    config.vm.define "fullstack" do |vmconfig|
+
+        vmconfig.vm.provision "ansible" do |ansible|
+            ansible.playbook = "playbooks/fullstack.yml"
+            ansible.compatibility_mode = "2.0"
+        end
+        vmconfig.vm.box = "aracpac/ubuntu22"
+        # https://app.vagrantup.com/aracpac/boxes/ubuntu22
+        # Fullstack environment
+        # mysql user: root password: root
+        # mongo ???
+        vmconfig.vm.provider "virtualbox" do |virtualbox|
+            virtualbox.memory = 2048
+            virtualbox.cpus = 1
+        end
+    end
+end

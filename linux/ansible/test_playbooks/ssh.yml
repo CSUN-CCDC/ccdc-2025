@@ -1,0 +1,11 @@
+---
+- name: Playbook for testing ssh scripts
+  hosts: all
+  gather_facts: true
+  become: yes
+
+  tasks:
+    - name: testing the notification script
+      import_tasks: "../roles/sshd/tasks/notification.yml"
+      vars:
+        users: ["vagrant"]

@@ -1,0 +1,28 @@
+---
+# This only works for keycloak v19 or above. To change in the future. 
+
+keycloak_tls: "http" # Or https for when that is used
+
+keycloak_server: ""
+
+keycloak_realm: "master" # Realm of keycloak
+
+keycloak_admin_realm: "master" # Realm keycloak admin is, typically, and by default, "master"
+
+keycloak_user: "admin"
+
+keycloak_password: "password"
+
+keycloak_passwords_shuffle: false
+
+keycloak_new_password: "" # Sets new admin password for keycloak
+
+keycloak_version: "23" # Version of keycloak. Additional versions to attempt to target: 21, 19. 
+
+# Below are for running the playbook, and are not expected to be user modified. 
+
+keycloak_userpass_dict: {}
+
+keycloak_api_specs:
+  "23":
+

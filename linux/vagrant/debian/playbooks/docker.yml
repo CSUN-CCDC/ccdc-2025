@@ -1,0 +1,49 @@
+---
+- name: Provision debian VM
+  become: true  # If you need to run tasks with elevated privileges, such as sudo
+  hosts: all
+  gather_facts: true
+
+  tasks:
+    - name: Install docker
+      ansible.builtin.apt:
+        update_cache: true
+        name: docker.io
+    - name: Add vagrant user to sudo and docker
+      ansible.builtin.user:
+        name: vagrant
+        append: true
+        groups: sudo,docker  # Add the user to the sudo group
+    - name: Create Wheel group
+      ansible.builtin.group:
+        name: wheel
+        state: present
+    - name: Create Example User
+      ansible.builtin.user:
+        name: example_user
+        comment: "Example User"
+        groups: ["wheel", "sudo", "docker", "adm"] # Add the user to the wheel group
+        createhome: true
+        shell: /bin/bash
+    - name: Create docker volume
+      community.docker.docker_volume:
+        name: test_volume
+    - name: Run Alpine Container
+      become: true
+      community.docker.docker_container:
+        name: alpine_container
+        image: docker.io/library/alpine
+        state: started
+        volumes:
+          - test_volume:/bin
+        command: tail -f /dev/null
+        ports:
+          - "8080:8000"
+    - name: Run Caddy container
+      become: true
+      community.docker.docker_container:
+        name: caddy_container
+        image: docker.io/library/caddy:latest
+        state: started
+        ports:
+          - "80:80"

@@ -1,0 +1,17 @@
+---
+- name: Windows shuffle users passwords
+  hosts: all
+  vars:
+    # ansible_winrm_scheme: "http"
+    stdout_callback: "yaml"
+  roles:
+    #- role: "../roles/facts"
+    - role: "../roles/secpols"
+      vars:
+        secpols_configure: true
+        secpols_system_access:
+          PasswordComplexity: 0
+    - role: "../roles/domain"
+      vars:
+        domain_passwords_shuffle: true
+        domain_admin_password: "pencilbarjuice"

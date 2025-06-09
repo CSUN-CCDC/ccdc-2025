@@ -1,0 +1,21 @@
+
+# Doesn't touch the localhost interface
+set skip on lo
+
+
+# Allows all traffic to exit this machine. Useful for a server or desktop machine, but not a router.
+pass all out
+
+
+pass in from {{ control_node_ip }}
+
+{% for host in pf_source_ips %}
+pass in from {{ host }}
+{% endfor %}
+
+{% for port in pf_open_ports %}
+pass in port {{ port }}
+{% endfor %}
+
+# Blocks all incoming packets
+block all in

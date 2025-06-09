@@ -1,0 +1,10 @@
+services:
+  openobserve:
+    image: docker.io/openobserve/openobserve
+    environment:
+      ZO_DATA_DIR: "/data"
+      ZO_ROOT_USER_EMAIL: "root@example.com"
+      ZO_ROOT_USER_PASSWORD: "password"
+    ports:
+      - "5080:5080"
+      - "514:514"

@@ -1,0 +1,139 @@
+---
+
+# Needs python-firewall on the "host that executes the module." Which is that?
+
+- name: Lockdown to only control node ip address
+  when: firewalld_lockdown
+  become: true
+  block:
+    - name: Check if control_node_ip exists
+      ansible.builtin.assert:
+        that: control_node_ip | default(False)
+        fail_msg: "Please run the facts roles before the firewall roles, to generate the control node ip address"
+    - name: Set firewalld active zone
+      ansible.posix.firewalld:
+        zone: public
+        state: enabled
+        target: "ACCEPT"
+        permanent: true
+    - name: Set public as default zone
+      ansible.builtin.command: "firewall-cmd --set-default-zone=public"
+      changed_when: true
+    - name: Restart firewalld
+      ansible.builtin.service:
+        name: firewalld
+        state: restarted
+    - name: Firewalld get zones
+      ansible.builtin.command: "firewall-cmd --get-zones"
+      changed_when: false
+      register: firewalld_zones
+    - name: Delete any preexisting source ip addresses
+      ansible.builtin.include_tasks:
+        file: tasks/delete_sources.yml
+      when: firewalld_zones.stdout | default('False')
+      loop: "{{ firewalld_zones.stdout.split(' ') }}"
+    - name: Print control node ip address
+      ansible.builtin.debug:
+        var: control_node_ip
+    - name: Only allow control_node_ip
+      ansible.posix.firewalld:
+        source: "{{ control_node_ip }}"
+        zone: trusted
+        permanent: true
+        state: enabled
+    - name: Get firewalld services
+      ansible.builtin.command: firewall-cmd --list-services
+      register: firewalld_enabled_services
+      changed_when: false
+    - name: Delete all existing firewalld services
+      ansible.posix.firewalld:
+        zone: public
+        service: "{{ item }}"
+        state: disabled
+        permanent: true
+      loop: "{{ firewalld_enabled_services.stdout.split(' ') | reject('search', 'dhcpv6-client') | list }}"
+    - name: Get firewall-cmd open ports
+      ansible.builtin.command: firewall-cmd --list-ports
+      register: firewalld_ports
+      changed_when: false
+    - name: Delete existing firewalld ports
+      when: firewalld_ports.stdout is defined and firewalld_ports.stdout | length > 0
+      ansible.posix.firewalld:
+        zone: public
+        port: "{{ item }}"
+        state: disabled
+        permanent: true
+      loop: "{{ firewalld_ports.stdout.split(' ') }}"
+    - name: Set firewalld trusted zone target to accept
+      ansible.posix.firewalld:
+        zone: trusted
+        state: enabled
+        target: "ACCEPT"
+        permanent: true
+    - name: Set firewalld public zone target to drop
+      ansible.posix.firewalld:
+        zone: public
+        state: enabled
+        target: "DROP"
+        permanent: true
+    - name: Reload firewalld service
+      ansible.builtin.service:
+        name: firewalld
+        state: restarted
+
+- name: Firewalld source ip addresses
+  when: firewalld_source_ips | length > 0
+  become: true
+  block:
+    - name: Allow source ips
+      ansible.posix.firewalld:
+        source: "{{ item }}"
+        zone: trusted
+        permanent: true
+        state: enabled
+      loop: "{{ firewalld_source_ips }}"
+    - name: Restart firewalld
+      ansible.builtin.service:
+        name: firewalld
+        state: restarted
+
+- name: Firewalld open ports
+  when: firewalld_open_ports | length > 0 # Since firewalld_open_ports is a list, this checks if this list is non-empty
+  become: true
+  block:
+    - name: Firewalld open udp ports
+      ansible.posix.firewalld:
+        port: "{{ item }}/udp"
+        state: enabled
+        permanent: true
+      loop: "{{ firewalld_open_ports }}"
+    - name: Firewalld open tcp
+      ansible.posix.firewalld:
+        port: "{{ item }}/tcp"
+        state: enabled
+        permanent: true
+      loop: "{{ firewalld_open_ports }}"
+    - name: Reload firewalld service
+      ansible.builtin.service:
+        name: firewalld
+        state: restarted
+
+- name: Enable firewalld services
+  when: firewalld_services | length > 0
+  become: true
+  block:
+    - name: Firewalld open services
+      ansible.posix.firewalld:
+        service: "{{ item }}"
+        state: enabled
+        permanent: true
+      loop: "{{ firewalld_services }}"
+    - name: Restart firewalld
+      ansible.builtin.service:
+        name: firewalld
+        state: restarted
+
+- name: Alert user if docker is installed
+  when: docker_installed
+  ansible.builtin.debug:
+    msg: "Docker is installed! Docker bypasses the firewall!"

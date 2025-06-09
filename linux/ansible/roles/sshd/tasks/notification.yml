@@ -1,0 +1,25 @@
+- name: add notifications for when someone logs in using ssh
+  ansible.builtin.blockinfile:
+    path: /etc/ssh/sshd_config
+    block: |
+      Match User *
+      ForceCommand sudo wall "user $(whoami) logged in with credentials $SSH_CONNECTION"; $SHELL
+    state: present
+    backup: true
+    insertafter: EOF
+
+
+- name: make wall not require sudo password
+  ansible.builtin.lineinfile:
+    path: /etc/sudoers
+    line: "{{ item }} ALL=NOPASSWD:/bin/wall \"user $(whoami) logged in with credentials $SSH_CONNECTION\""
+    state: present
+    backup: true
+    insertafter: EOF
+  loop: "{{ users }}"
+
+- name: restart ssh
+  ansible.builtin.systemd_service:
+    state: restarted
+    daemon_reload: true
+    name: sshd

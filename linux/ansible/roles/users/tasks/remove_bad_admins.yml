@@ -1,0 +1,21 @@
+---
+- name: Configure user {{ item }}
+  block:
+    - name: Get groups of user {{ item }}
+      ansible.builtin.command: "su -c 'groups' -s /bin/bash {{ item }}"
+      register: user_groups
+      changed_when: false
+    - name: Print current groups
+      ansible.builtin.debug:
+        msg: "{{ user_groups.stdout }}"
+    - name: Print current groups of {{ item }}
+      ansible.builtin.debug:
+        msg: "{{ user_groups.stdout.split(' ') }}"
+    - name: Print correct groups
+      ansible.builtin.debug:
+        msg: "{{ user_groups.stdout.split(' ') | difference(admin_groups) }}"
+    - name: Remove user from admin groups
+      ansible.builtin.user:
+        name: "{{ item }}"
+        groups: "{{ user_groups.stdout.split(' ') | difference(admin_groups) }}"
+        append: false

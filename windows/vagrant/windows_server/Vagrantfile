@@ -1,0 +1,133 @@
+# -*- mode: ruby -*-
+# vi: set ft=ruby :
+
+Vagrant.configure("2") do |config|
+
+    #config.vm.synced_folder ".", "/vagrant", disabled: true
+    config.vm.communicator = "winrm"
+    config.winrm.transport = :plaintext
+    config.winrm.host = "127.0.0.1"
+    config.winrm.port = 55985
+    config.winrm.ssl_peer_verification = false
+    config.winrm.basic_auth_only = true
+
+    config.vm.define "dc2016" do |vmconfig|
+        vmconfig.vm.provision "ansible" do |ansible|
+            ansible.playbook = "ansible/inventory.yml"
+            ansible.compatibility_mode = "2.0"
+            ansible.extra_vars = {
+                ansible_winrm_scheme: "http"
+            }
+        end
+        vmconfig.vm.box = "cdaf/WindowsServerDC"
+        vmconfig.vm.provider "virtualbox" do |virtualbox|
+            virtualbox.memory = 3000
+            virtualbox.cpus = 2
+        end
+
+        #vmconfig.vm.network "private_network", type: "dhcp", virtualbox__intnet: true
+    end
+
+    config.vm.define "dc2022-goku" do |vmconfig|
+        vmconfig.vm.provision "ansible" do |ansible|
+            ansible.playbook = "ansible/inventory.yml"
+            ansible.compatibility_mode = "2.0"
+            ansible.extra_vars = {
+                ansible_winrm_scheme: "http"
+            }
+        end
+        vmconfig.vm.box = "royce/capsulecorp-goku"
+        vmconfig.vm.provider "virtualbox" do |virtualbox|
+            virtualbox.memory = 3000
+            virtualbox.cpus = 2
+        end
+
+        #vmconfig.vm.network "private_network", type: "dhcp", virtualbox__intnet: true
+    end
+    config.vm.define "dc2022" do |vmconfig|
+        vmconfig.vm.provision "ansible" do |ansible|
+            ansible.playbook = "ansible/inventory.yml"
+            ansible.compatibility_mode = "2.0"
+        end
+        vmconfig.vm.box = "dstoliker/winserver2022-dc"
+        vmconfig.vm.provider "virtualbox" do |virtualbox|
+            virtualbox.memory = 3000
+            virtualbox.cpus = 2
+        end
+
+        #vmconfig.vm.network "private_network", type: "dhcp", virtualbox__intnet: true
+    end
+
+    config.vm.define "dc2016-midpoint" do |vmconfig|
+        vmconfig.vm.provision "ansible" do |ansible|
+            ansible.playbook = "ansible/inventory.yml"
+            ansible.compatibility_mode = "2.0"
+        end
+        vmconfig.vm.box = "mindpointgroup/windowsserver2016-DC"
+        vmconfig.vm.provider "virtualbox" do |virtualbox|
+            virtualbox.memory = 3000
+            virtualbox.cpus = 2
+        end
+
+        #vmconfig.vm.network "private_network", type: "dhcp", virtualbox__intnet: true
+    end
+
+    config.vm.define "server2016" do |vmconfig|
+        vmconfig.vm.provision "ansible" do |ansible|
+            ansible.playbook = "ansible/inventory.yml"
+            ansible.compatibility_mode = "2.0"
+        end
+        vmconfig.vm.box = "jborean93/WindowsServer2016"
+        vmconfig.vm.provider "libvirt" do |libvirt|
+            libvirt.driver = "kvm"
+            libvirt.memory = 2500
+            libvirt.cpus = 2
+            libvirt.video_type = "virtio"
+            #libvirt.graphics_type = "vnc"
+        end
+    end
+    config.vm.define "server2019" do |vmconfig|
+        vmconfig.vm.provision "ansible" do |ansible|
+            ansible.playbook = "ansible/inventory.yml"
+            ansible.compatibility_mode = "2.0"
+        end
+        vmconfig.vm.box = "jborean93/WindowsServer2019"
+        vmconfig.vm.provider "libvirt" do |libvirt|
+            libvirt.driver = "kvm"
+            libvirt.memory = 2500
+            libvirt.cpus = 2
+            libvirt.video_type = "virtio"
+            #libvirt.graphics_type = "vnc"
+        end
+    end
+
+    config.vm.define "server2022" do |vmconfig|
+        vmconfig.vm.provision "ansible" do |ansible|
+            ansible.playbook = "ansible/inventory.yml"
+            ansible.compatibility_mode = "2.0"
+        end
+        vmconfig.vm.box = "jborean93/WindowsServer2012"
+        vmconfig.vm.provider "libvirt" do |libvirt|
+            libvirt.driver = "kvm"
+            libvirt.memory = 2500
+            libvirt.cpus = 2
+            libvirt.video_type = "virtio"
+            #libvirt.graphics_type = "vnc"
+        end
+    end
+    config.vm.define "server2012r2" do |vmconfig|
+        vmconfig.vm.provision "ansible" do |ansible|
+            ansible.playbook = "ansible/inventory.yml"
+            ansible.compatibility_mode = "2.0"
+        end
+        vmconfig.vm.box = "jborean93/WindowsServer2012R2"
+        vmconfig.vm.provider "libvirt" do |libvirt|
+            libvirt.driver = "kvm"
+            libvirt.memory = 2500
+            libvirt.cpus = 2
+            libvirt.video_type = "virtio"
+            #libvirt.graphics_type = "vnc"
+        end
+    end
+
+end

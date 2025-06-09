@@ -1,0 +1,80 @@
+---
+
+- name: Lockdown to only control node ip address
+  become: true
+  when: ufw_lockdown
+  block:
+    - name: Check if control_node_ip exists
+      ansible.builtin.assert:
+        that: control_node_ip | default(False)
+        fail_msg: "Please run the facts roles before the firewall roles, to generate the control node ip address"
+    - name: Print control node ip address
+      ansible.builtin.debug:
+        var: control_node_ip
+    # Follow ufw from here: https://docs.ansible.com/ansible/latest/collections/community/general/ufw_module.html
+    - name: Set iptables INPUT policy accept
+      ansible.builtin.iptables:
+        chain: INPUT
+        policy: ACCEPT
+    - name: Disable ufw
+      community.general.ufw:
+        state: disabled
+    - name: Reset UFW # If ssh doesn't support controlpersist, then this will lock us out. 
+      community.general.ufw:
+        state: reset
+    - name: Ufw allow outgoing
+      community.general.ufw:
+        default: allow
+        direction: outgoing
+    - name: Disallow incoming
+      community.general.ufw:
+        default: deny
+        direction: incoming
+    - name: Ufw only allow control node ip address
+      community.general.ufw:
+        rule: allow
+        from_ip: "{{ control_node_ip }}"
+    - name: UFW deny by default
+      community.general.ufw:
+        state: enabled
+        policy: deny
+
+- name: Ufw source ips
+  when: ufw_source_ips | length > 0
+  become: true
+  block:
+    - name: Ufw loop and allow source ip's
+      community.general.ufw:
+        rule: allow
+        from_ip: "{{ item }}"
+      loop: "{{ ufw_source_ips }}"
+    - name: Reload ufw
+      community.general.ufw:
+        state: reloaded
+
+- name: Ufw open ports
+  become: true
+  when: ufw_open_ports | length > 0 # By default, open_ports is an empty list. Iterable checks if it's actually empty
+  block:
+    - name: Open multiple ports in UFW
+      community.general.ufw:
+        rule: allow
+        port: "{{ item }}"
+        state: enabled
+      loop: "{{ ufw_open_ports }}"
+    - name: Reload ufw
+      community.general.ufw:
+        state: reloaded
+
+- name: Ufw open apps
+  become: true
+  when: ufw_apps | length > 0
+  block:
+    - name: Loop through and open ufw apps
+      community.general.ufw:
+        name: "{{ item }}"
+        rule: allow
+      loop: "{{ ufw_apps }}"
+    - name: Reload ufw
+      community.general.ufw:
+        state: reloaded
